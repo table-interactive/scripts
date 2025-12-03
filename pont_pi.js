@@ -2,21 +2,30 @@ const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 const axios = require('axios');
 
-const port = new SerialPort({ path: '/dev/ttyUSB1', baudRate: 9600 });
+const API_URL = 'http://192.168.1.50:3000';
+const port = new SerialPort({ path: '/dev/ttyUSB0', baudRate: 115200 });
 const parser = port.pipe(new ReadlineParser({ delimiter: '\r\n' }));
 
-console.log("Système prêt. En attente de badge RFID...");
+parser.on('data', (line) => {
+    const data = line.trim();
+    let payload = null;
 
-parser.on('data', async (rfidTag) => {
-    console.log(`Badge détecté : ${rfidTag}`);
+    if (data.startsWith("RFID:")) {
+        payload = {
+            type: 'rfid',
+            uid: data.split(':')[1],
+            device_id: 'PI_LOBBY_01'
+        };
+    } else if (data.startsWith("MOVE:")) {
+        payload = {
+            type: 'motion',
+            status: 'detected',
+            device_id: 'PI_LOBBY_01'
+        };
+    }
 
-    try {
-        const response = await axios.post('http://ip:3000/api/scan', {
-            uid: rfidTag,
-            timestamp: new Date().toISOString(),
-        });
-        console.log('Envoyé avec succès:', response.status);
-    } catch (error) {
-        console.error('Erreur lors de l\'envoi:', error.message);
+    if (payload) {
+        axios.post(`${API_URL}/api/scan`, payload, { timeout: 2000 })
+            .catch(err => console.error(err.message));
     }
 });
