@@ -28,7 +28,7 @@ void loop() {
     content.toUpperCase();
     Serial.print("RFID:");
     Serial.println(content.substring(1));
-    delay(1000);
+    //delay(1000);
     rfid.PICC_HaltA();
     rfid.PCD_StopCrypto1();
   }
@@ -48,5 +48,5 @@ void loop() {
       lastMoveTime = millis();
     }
   }
-  delay(50);
+  //delay(50);
 }
